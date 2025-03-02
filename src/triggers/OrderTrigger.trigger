@@ -1,6 +1,12 @@
+/**
+ * Trigger for the Order object
+ * Executes on before insert and before update events
+ */
 trigger OrderTrigger on Order (before insert, before update) {
-    // TODO: Verifier érifier si la commande répond aux critères
-    //  de validation. Cette méthode doit s'assurer que le nombre minimum de produits est respecté en fonction du type
-    //  de client (Particulier ou Professionnel).
-    //  TODO: Selectionner le meilleur transporteur selon le choix fait sur la commande
+    // Validate orders based on business rules (e.g., minimum product requirements)
+    OrderService.validateOrders(Trigger.new);
+    
+    // Assign the most appropriate transporter based on delivery method selected
+    // (Faster, Cheaper, or Personalize)
+    OrderService.assignBestTransporter(Trigger.new); 
 }

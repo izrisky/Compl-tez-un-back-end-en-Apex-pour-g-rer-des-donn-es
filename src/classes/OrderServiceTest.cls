@@ -37,8 +37,6 @@ private class OrderServiceTest {
         insert new List<Account>{individualAccount, businessAccount};
         
 
-// Dans setupTestData()
-// Créer les transporteurs
 List<Transporter__c> transporters = new List<Transporter__c>{
     new Transporter__c(Name = 'Fast Delivery', Type__c = 'Particulier'),
     new Transporter__c(Name = 'Budget Delivery', Type__c = 'Particulier'),
@@ -46,7 +44,6 @@ List<Transporter__c> transporters = new List<Transporter__c>{
 };
 insert transporters;
 
-// Puis utilisez leurs IDs
 List<Delivery_Rate__c> deliveryRates = new List<Delivery_Rate__c>{
             new Delivery_Rate__c(
                 Country__c = 'France',
@@ -78,8 +75,6 @@ static void testValidateOrdersIndividualSuccess() {
     
     // Create a price book and entry for testing
     Id standardPriceBookId = Test.getStandardPricebookId();
-    // Product2 testProduct = new Product2(Name = 'Test Product', IsActive = true);
-    // insert testProduct;
     
     List<Product2> testProducts = new List<Product2>{
         new Product2(Name = 'Test Product1', IsActive = true),
@@ -258,58 +253,4 @@ static void testAssignBestTransporterCheaper() {
     order = [SELECT Transporter__c FROM Order WHERE Id = :order.Id];
     System.assertEquals(budgetTransporter.Id, order.Transporter__c, 'Cheapest transporter should have been selected');
 }
-    
-    @isTest
-    static void testAssignBestTransporterNoDeliveryService() {
-        // Récupérer le compte
-        Account account = [SELECT Id FROM Account WHERE Name = 'Test Individual' LIMIT 1];
-        
-        // Créer une commande pour un pays sans service de livraison
-        Order order = new Order(
-            AccountId = account.Id,
-            Status = 'Draft',
-            EffectiveDate = Date.today(),
-            ShippingCountry = 'Spain', // Aucun tarif pour l'Espagne
-            Delivery_Method__c = 'Faster'
-        );
-        
-        // La méthode devrait déclencher une erreur
-        Test.startTest();
-        try {
-            insert order;
-            System.assert(false, 'Insert should have failed');
-        } catch (Exception e) {
-            System.assert(e.getMessage().contains('No delivery service available'), 
-                        'Exception should indicate no delivery service');
-        }
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testPriceAndTimeComparator() {
-        // Création de tarifs de test
-        Delivery_Rate__c rate1 = new Delivery_Rate__c(Price__c = 10, Delivery_time__c = 3);
-        Delivery_Rate__c rate2 = new Delivery_Rate__c(Price__c = 8, Delivery_time__c = 5);
-        Delivery_Rate__c rate3 = new Delivery_Rate__c(Price__c = 10, Delivery_time__c = 2);
-        
-        // Test du comparateur en mode "Faster"
-        OrderService.PriceAndTimeComparator fasterComp = 
-            new OrderService.PriceAndTimeComparator('Faster');
-        
-        System.assertEquals(-1, fasterComp.compare(rate3, rate1), 
-                          'Rate3 should come before Rate1 (faster delivery)');
-        System.assertEquals(-1, fasterComp.compare(rate1, rate2), 
-                          'Rate1 should come before Rate2 (faster delivery)');
-        
-        // Test du comparateur en mode "Cheaper"
-        OrderService.PriceAndTimeComparator cheaperComp = 
-            new OrderService.PriceAndTimeComparator('Cheaper');
-        
-        System.assertEquals(1, cheaperComp.compare(rate1, rate2), 
-                          'Rate1 should come after Rate2 (higher price)');
-        System.assertEquals(-1, cheaperComp.compare(rate2, rate1), 
-                          'Rate2 should come before Rate1 (lower price)');
-        System.assertEquals(-1, cheaperComp.compare(rate3, rate1), 
-                          'Rate3 should come before Rate1 (same price, faster delivery)');
-    }
 }

@@ -1,12 +1,18 @@
 public with sharing class TransporterSelector {
-        public static List<Delivery_Rate__c> getDeliveryRatesWithTransporterIds(Set<String> countries) {
-            if (countries.isEmpty()) {
-                return new List<Delivery_Rate__c>();
-            }
-            return [
-                SELECT Transporter__c, Price__c, Delivery_time__c, Country__c
-                FROM Delivery_Rate__c
-                WHERE Country__c IN :countries
-            ];
-        }
+    // Trouver le transporteur le moins cher
+    public static Delivery_Rate__c getCheapestTransporter(String country) {
+        return [SELECT Id, Transporter__c, Transporter__r.Name,Price__c, Delivery_time__c 
+                FROM Delivery_Rate__c 
+                WHERE Country__c = :country 
+                ORDER BY Price__c ASC 
+                LIMIT 1];
+    }
+        // Trouver le transporteur le moins cher
+    public static Delivery_Rate__c getFastestTransporter(String country) {
+        return [SELECT Id, Transporter__c, Transporter__r.Name,Price__c, Delivery_time__c 
+                FROM Delivery_Rate__c 
+                WHERE Country__c = :country 
+                ORDER BY Delivery_time__c ASC 
+                LIMIT 1];
+    }
 }

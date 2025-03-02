@@ -24,18 +24,6 @@ private class TransporterSelectorTest {
 
     @testSetup
     static void setupTestData() {
-        // // Création des comptes de test
-        // Account individualAccount = new Account(
-        //     Name = 'Test Individual',
-        //     Type = 'Particulier'
-        // );
-        
-        // Account businessAccount = new Account(
-        //     Name = 'Test Business',
-        //     Type = 'Professionnel'
-        // );
-        
-        // insert new List<Account>{individualAccount, businessAccount};
           // Créer d'abord les transporteurs
     List<Transporter__c> transporters = new List<Transporter__c>{
         new Transporter__c(Name = 'Fast Delivery'),
@@ -59,7 +47,7 @@ private class TransporterSelectorTest {
                 Delivery_time__c = 5
             ),
             new Delivery_Rate__c(
-                Country__c = 'Suisse',
+                Country__c = 'France',
                 Transporter__c = transporters[2].Id, // Euro Express
                 Price__c = 12,
                 Delivery_time__c = 3
@@ -75,31 +63,20 @@ private class TransporterSelectorTest {
     insert deliveryRates;
     }
     @isTest
-    static void testGetDeliveryRatesByCountries() {
-        Set<String> countries = new Set<String>{'France', 'Suisse'};
-        
+    static void testGetCheapestTransporter() {
         Test.startTest();
-        List<Delivery_Rate__c> rates = TransporterSelector.getDeliveryRatesWithTransporterIds(countries);
+         Delivery_Rate__c  bestRate= TransporterSelector.getCheapestTransporter('France');
         Test.stopTest();
-        
-        System.assertEquals(3, rates.size(), 'Should return 3 delivery rates');
-        
-        // Vérifier que les deux pays sont représentés
-        Set<String> returnedCountries = new Set<String>();
-        for(Delivery_Rate__c rate : rates) {
-           if(!returnedCountries.contains(rate.Country__c)) returnedCountries.add(rate.Country__c);
-        }
-        System.assertEquals(2, returnedCountries.size(), 'Should return rates for both countries');
-        System.assert(returnedCountries.contains('France'), 'Should include France');
-        System.assert(returnedCountries.contains('Suisse'), 'Should include Suisse');
+        System.assertEquals('Budget Delivery', bestRate.Transporter__r.Name, 'Should be Budget Delivery');
     }
     
+    
     @isTest
-    static void testGetDeliveryRatesByCountriesEmpty() {
+    static void testGetFastestTransporter() {
         Test.startTest();
-        List<Delivery_Rate__c> rates = TransporterSelector.getDeliveryRatesWithTransporterIds(new Set<String>());
+         Delivery_Rate__c  bestRate= TransporterSelector.getFastestTransporter('France');
         Test.stopTest();
-        
-        System.assertEquals(0, rates.size(), 'Should return empty list for empty input');
+
+        System.assertEquals('Fast Delivery', bestRate.Transporter__r.Name, 'Should be Fast Delivery');
     }
 }

@@ -37,14 +37,14 @@ private class OrderServiceTest {
         insert new List<Account>{individualAccount, businessAccount};
         
 
-List<Transporter__c> transporters = new List<Transporter__c>{
-    new Transporter__c(Name = 'Fast Delivery', Type__c = 'Particulier'),
-    new Transporter__c(Name = 'Budget Delivery', Type__c = 'Particulier'),
-    new Transporter__c(Name = 'Euro Express', Type__c = 'Professionnel')
-};
-insert transporters;
+        List<Transporter__c> transporters = new List<Transporter__c>{
+            new Transporter__c(Name = 'Fast Delivery', Type__c = 'Particulier'),
+            new Transporter__c(Name = 'Budget Delivery', Type__c = 'Particulier'),
+            new Transporter__c(Name = 'Euro Express', Type__c = 'Professionnel')
+        };
+    insert transporters;
 
-List<Delivery_Rate__c> deliveryRates = new List<Delivery_Rate__c>{
+    List<Delivery_Rate__c> deliveryRates = new List<Delivery_Rate__c>{
             new Delivery_Rate__c(
                 Country__c = 'France',
                 Transporter__c = transporters[0].Id,
@@ -196,7 +196,7 @@ static void testValidateOrdersIndividualFail() {
     Test.startTest();
     try {
         update order;
-        System.assert(false, 'Update should have failed');
+        assert.isTrue(false, 'Update should have failed');
     } catch (Exception e) {
         System.assert(e.getMessage().contains('Individual customers must order at least 3 products'),
                     'Exception message should mention minimum product requirement');
@@ -252,5 +252,64 @@ static void testAssignBestTransporterCheaper() {
     
     order = [SELECT Transporter__c FROM Order WHERE Id = :order.Id];
     System.assertEquals(budgetTransporter.Id, order.Transporter__c, 'Cheapest transporter should have been selected');
+}
+
+@isTest
+static void testCreateDeliveryOnOrderActivation() {
+    // Récupérer un compte de test
+    Account account = [SELECT Id FROM Account WHERE Name = 'Test Individual' LIMIT 1];
+    
+    // Récupérer un transporteur de test
+    Delivery_Rate__c deliveryRate = [SELECT Id, Transporter__c FROM Delivery_Rate__c LIMIT 1];
+    
+    // Create a price book and entry for testing
+    Id standardPriceBookId = Test.getStandardPricebookId();
+    Product2 testProduct = new Product2(Name = 'Test Product', IsActive = true);
+    insert testProduct;
+    
+    PricebookEntry standardPrice = new PricebookEntry(
+        Pricebook2Id = standardPriceBookId,
+        Product2Id = testProduct.Id,
+        UnitPrice = 100,
+        IsActive = true
+    );
+    insert standardPrice;    
+
+    // Créer une commande avec le statut 'Activated'
+    Order order = new Order(
+        AccountId = account.Id,
+        Status = 'Draft',
+        ShippingCountry = 'France',
+        EffectiveDate = Date.today(),
+        Pricebook2Id = standardPriceBookId,
+        Transporter__c = deliveryRate.Transporter__c
+    );
+    
+    insert order;
+    // Create just 6 order items (below the required minimum of 3)
+    List<OrderItem> orderItems = new List<OrderItem>();
+    for(Integer i = 0; i < 6; i++) {
+        orderItems.add(new OrderItem(
+            OrderId = order.Id,
+            PricebookEntryId = standardPrice.Id,
+            Quantity = 1,
+            UnitPrice = 100
+        ));
+    }
+    insert orderItems;
+    
+    // Assurez-vous que la méthode createDelivery est invoquée lors de l'activation de l'ordre
+    Test.startTest();
+    order.Status = 'Activated';
+    update order;
+    Test.stopTest();
+
+
+     // Vérifier que la livraison a été créée
+     List<Delivery__c> deliveries = [SELECT Order__c, Delivery_Rate_Info__c,Delivery_Rate_Info__r.Transporter__c, Statut__c FROM Delivery__c WHERE Order__c = :order.Id];
+     System.debug('Nombre de livraisons créées : ' + deliveries.size());
+     System.assertEquals(1, deliveries.size(), 'Une seule livraison devrait être créée.');
+     System.assertEquals('Pending', deliveries[0].Statut__c, 'Le statut de la livraison devrait être En attente.');
+     System.assertEquals(order.Transporter__c, deliveries[0].Delivery_Rate_Info__r.Transporter__c, 'Le transporteur devrait correspondre à celui de la commande.');
 }
 }

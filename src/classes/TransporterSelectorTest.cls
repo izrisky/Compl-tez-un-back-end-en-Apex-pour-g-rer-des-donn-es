@@ -79,4 +79,29 @@ private class TransporterSelectorTest {
 
         System.assertEquals('Fast Delivery', bestRate.Transporter__r.Name, 'Should be Fast Delivery');
     }
+
+    @isTest
+    static void testGetDeliverTransporter_Success() {
+        // Récupérer un transporteur existant de 'Fast Delivery'
+        Transporter__c fastDelivery = [SELECT Id FROM Transporter__c WHERE Name = 'Fast Delivery' LIMIT 1];
+
+        // Création d'une commande avec un transporteur et un pays correspondant
+        Order order = new Order(
+            Status = 'Draft',
+            EffectiveDate = Date.today(),
+            ShippingCountry = 'France',
+            Transporter__c = fastDelivery.Id
+        );
+        
+        // Exécution de la méthode testée
+        Test.startTest();
+        Delivery_Rate__c result = TransporterSelector.getDeliverTransporter(order);
+        Test.stopTest();
+
+        // Vérification des résultats
+        System.assertNotEquals(result, null, 'A delivery rate should be returned.');
+        System.assertEquals(result.Price__c, 15, 'The price should match the inserted data.');
+        System.assertEquals(result.Delivery_time__c, 2, 'The delivery time should match.');
+    }
+
 }
